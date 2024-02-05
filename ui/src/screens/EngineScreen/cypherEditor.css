@@ -1,0 +1,16 @@
+.CodeMirror {
+  height: auto !important;
+  margin-top: 10px;
+}
+
+.CodeMirror-scroll {
+  line-height: 1.5;
+}
+
+.CodeMirror-gutters {
+  border: none !important;
+}
+
+.no-cursor .CodeMirror-cursors {
+  visibility: hidden !important;
+}

@@ -1,0 +1,22 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+*/node_modules
+
+#admin-api
+admin-api/src/cypher/*
+admin-api/src/util/license/licenseGenerator.js
+admin-api/src/util/license/licenseEncryptionKeyGenerator.js
+admin-api/.env
+admin-api/node_modules/
+
+#engine-api
+engine-api/.env
+engine-api/node_modules/
+
+#ui
+ui/.env
+ui/node_modules/
+
+
+

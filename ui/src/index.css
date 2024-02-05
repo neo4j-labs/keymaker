@@ -1,0 +1,16 @@
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--background-grey);
+  font-family: "Lato", "Helvetica Neue", Arial, Helvetica, sans-serif;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+body::-webkit-scrollbar {
+  display: none;
+}
+
+textarea {
+  font-family: "Lato", "Helvetica Neue", Arial, Helvetica, sans-serif;
+}

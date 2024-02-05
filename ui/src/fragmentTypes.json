@@ -1,0 +1,24 @@
+{
+  "__schema": {
+    "types": [
+      {
+        "kind": "INTERFACE",
+        "name": "Phase",
+        "possibleTypes": [
+          {
+            "name": "CypherDiscoveryPhase"
+          },
+          {
+            "name": "CypherExcludePhase"
+          },
+          {
+            "name": "CypherBoostPhase"
+          },
+          {
+            "name": "CypherDiversityPhase"
+          }
+        ]
+      }
+    ]
+  }
+}

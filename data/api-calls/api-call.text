@@ -1,0 +1,56 @@
+Running Movies - Cold Start Engine
+
+Step1 - You would paste the following text in the query operation screen 
+
+query {
+  recommendations(
+    engineID: "movies-cold-start"
+    first: 20
+    skip: 0
+  ) {
+    item
+    score
+    details
+  }
+}
+
+Step2 - Add the api-key as the header key and LZmIbId7He4dh0hH7ZUVKz5A as value.
+
+Running Movies - Collaborative Engine
+
+Step1 - You would paste the following text in the query operation screen 
+
+query {
+  recommendations(
+    engineID: "movies-collaborative-based-recommendation",
+    params: {startMovieTitle: "Shawshank Redemption, The"}
+    first: 20
+    skip: 0
+  ) {
+    item
+    score
+    details
+  }
+}
+
+Step2 - Add the api-key as the header key and LZmIbId7He4dh0hH7ZUVKz5A as value.
+
+Running Movies - Movies - Content Based Engine
+
+Step1 - You would paste the following text in the query operation screen 
+
+query {
+  recommendations(
+    engineID: "movies-content-based-recommendation",
+    params: {startMovieTitle: "Tales from the Crypt Presents: Demon Knight"}
+    first: 20
+    skip: 0
+  ) {
+    item
+    score
+    details
+  }
+}
+
+Step2 - Add the api-key as the header key and LZmIbId7He4dh0hH7ZUVKz5A as value.
+    

@@ -1,0 +1,318 @@
+:root {
+  --black: rgb(26, 26, 26);
+  --background-grey: rgb(243, 246, 249);
+  --light-grey: rgb(231, 238, 245);
+  --grey: rgb(140, 148, 154);
+  --dark-grey: rgba(91, 96, 101, 0.85);
+  --grey-opaque: rgb(153, 163, 172, 0.3);
+  --red: #fa541c;
+  /* --blue: #1890ff; */
+  --blue: rgb(0, 139, 193);
+  --blue-opaque: rgb(0, 139, 193, 0.1);
+  --green: rgb(98, 177, 67);
+  --green-opaque: rgb(98, 177, 67, 0.1);
+
+  --text-small: 14px;
+  --text-med: 16px;
+  --text-large: 20px;
+  --text-xl: 24px;
+}
+
+/* COLORS */
+
+.white {
+  color: white;
+}
+
+.white-background {
+  background-color: white;
+}
+
+.white-border {
+  border: 1px solid white;
+}
+
+.black {
+  color: var(--black);
+}
+
+.black-background {
+  background-color: var(--black);
+}
+
+.black-border {
+  border: 1px solid var(--black);
+}
+
+.light-grey {
+  color: var(--light-grey);
+}
+
+.light-grey-background {
+  background-color: var(--light-grey);
+}
+
+.light-grey-border {
+  border: 1px solid var(--light-grey) !important;
+}
+
+.grey {
+  color: var(--grey);
+}
+
+.grey-background {
+  background-color: var(--grey) !important;
+}
+
+.grey-border {
+  border: 1px solid var(--grey) !important;
+}
+
+.grey-background-opaque {
+  background-color: var(--grey-opaque);
+}
+
+.dark-grey {
+  color: var(--dark-grey);
+}
+
+.red {
+  color: var(--red);
+}
+
+.red-background {
+  background-color: var(--red);
+}
+
+.red-border {
+  border: 1px solid var(--red) !important;
+}
+
+.blue {
+  color: var(--blue);
+}
+
+.blue-background {
+  background-color: var(--blue);
+}
+
+.blue-border {
+  border: 1px solid var(--blue) !important;
+}
+
+.blue-background-opaque {
+  background-color: var(--blue-opaque);
+}
+
+.green {
+  color: var(--green);
+}
+
+.green-background {
+  background-color: var(--green);
+}
+
+.green-border {
+  border: 1px solid var(--green) !important;
+}
+
+.green-background-opaque {
+  background-color: var(--green-opaque);
+}
+
+/* FONT */
+
+.text-small {
+  font-size: var(--text-small) !important;
+}
+
+.text-med {
+  font-size: var(--text-med) !important;
+}
+
+.text-large {
+  font-size: var(--text-large) !important;
+}
+
+.text-xl {
+  font-size: var(--text-xl) !important;
+}
+
+.text-thin {
+  font-weight: 300 !important;
+}
+
+.text-normal {
+  font-weight: 400 !important;
+}
+
+.text-bold {
+  font-weight: 700 !important;
+}
+
+/* FORM FONT */
+
+.text-small.form {
+  font-size: 1em;
+}
+
+/* SPACING */
+
+.no-margin-right {
+  margin-right: 0px !important;
+}
+
+.margin-top-tiny {
+  margin-top: 4px;
+}
+
+.margin-right-tiny {
+  margin-right: 4px;
+}
+
+.margin-bottom-tiny {
+  margin-bottom: 4px;
+}
+
+.margin-left-tiny {
+  margin-left: 4px;
+}
+
+.margin-top-small {
+  margin-top: 8px;
+}
+
+.margin-right-small {
+  margin-right: 8px;
+}
+
+.margin-bottom-small {
+  margin-bottom: 8px;
+}
+
+.margin-left-small {
+  margin-left: 8px;
+}
+
+.margin-top-med {
+  margin-top: 12px;
+}
+
+.margin-right-med {
+  margin-right: 12px;
+}
+
+.margin-bottom-med {
+  margin-bottom: 12px;
+}
+
+.margin-left-med {
+  margin-left: 12px;
+}
+
+.margin-top-large {
+  margin-top: 36px;
+}
+
+.margin-right-large {
+  margin-right: 36px;
+}
+
+.margin-bottom-large {
+  margin-bottom: 36px;
+}
+
+.margin-left-large {
+  margin-left: 36px;
+}
+
+@media only screen and (max-width: 600px) {
+  .hidden-on-mobile {
+    width: 0px;
+    height: 0px;
+    visibility: hidden;
+  }
+}
+
+/* SM UI OVERIDES */
+
+i.icon {
+  margin-left: 0px !important;
+  margin-right: 0px !important;
+}
+
+img.ui.avatar.image {
+  min-width: 30px;
+}
+
+.ui.dropdown.menu {
+  border-radius: 2px !important;
+}
+
+.ui.pointing.dropdown > .menu {
+  border-radius: 2px !important;
+}
+
+.ui.input > input {
+  border-radius: 2px !important;
+}
+
+.ui.form textarea {
+  border-radius: 2px !important;
+}
+
+.ui.modal {
+  border-radius: 2px !important;
+}
+
+.ui.label {
+  border-radius: 2px !important;
+}
+
+.ui.selection.dropdown {
+  border-radius: 2px !important;
+}
+
+/* SM UI BUTTON COLORS */
+
+.blue.button {
+  color: var(--blue);
+}
+
+.blue-background.button {
+  background-color: var(--blue);
+}
+
+/* SM UI ICON COLORS */
+
+i.white.icon {
+  color: white !important;
+}
+
+i.white-background.icon {
+  background-color: white !important;
+}
+
+i.grey.icon {
+  color: var(--grey) !important;
+}
+
+i.grey-background.icon {
+  background-color: var(--grey) !important;
+}
+
+i.blue.icon {
+  color: var(--blue) !important;
+}
+
+i.blue-background.icon {
+  background-color: var(--blue) !important;
+}
+
+i.green.icon.eoTbEs {
+  color: var(--green) !important;
+}
+
+i.green-background.icon {
+  background-color: var(--green) !important;
+}
