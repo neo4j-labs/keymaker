@@ -137,6 +137,7 @@ const CreateEngineModal = ({ isOpen, onClose, ...mutations }) => {
   };
 
   const getDatabaseNameOptions = (databases) => {
+    console.log("databases",databases)
     return databases.map((database) => ({
       key: database,
       value: database,

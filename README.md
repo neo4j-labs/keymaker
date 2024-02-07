@@ -14,7 +14,7 @@ The project is divided into 4 main folders:
    
    - admin-api: This facilitate user interaction with the framework (i.e. database connection management, engine creation, and writing Cypher)
    - engine-api: This connects with your Neo4j database and exposes an endpoint which excecutes the engine
-   - cypher: contains the initialization script for running keymaker
+   - data: contains the initialization cypher script for running keymaker and also, the engine import json and the api graphql queries
    - ui: contains the React UI
 
 To run the code locally, you will need to do 3 things:
