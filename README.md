@@ -8,6 +8,8 @@ Keymaker has 3 components: the admin dashboard, admin API, and engine API. The a
 
 Online help for Keymaker can be found here: https://help.neo4j.solutions/neo4j-solutions/keymaker/
 
+Link to the Keymaker Blogpost can be found here: https://medium.com/@snehal.maid/keymaker-dc496d41b21f
+
 ## Running Keymaker
 
 The project is divided into 4 main folders:
