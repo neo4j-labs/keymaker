@@ -2,7 +2,7 @@ import styled from "styled-components";
 import TextAreaAutosize from "react-autosize-textarea";
 
 export const NoEdit = styled.div`
-  pointer-events: none;
+  // pointer-events: none;
 `;
 
 export const InnerWrapper = styled.div`
