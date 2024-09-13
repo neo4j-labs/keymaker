@@ -1,5 +1,7 @@
 import { encrypt, decrypt } from "../util/encryption/crypto";
 import { runQuery, getDriver } from "../util/db";
+import { logger } from "../index";
+import { v4 as uuidv4 } from 'uuid';
 
 export const createAPIKeyForOrg = async (org, duration, { email }) => {
   // create a new API and check if it exists in the database
@@ -53,7 +55,10 @@ export const createAPIKeyForOrg = async (org, duration, { email }) => {
 };
 
 export const createAPIKey = async (duration, { email }) => {
-  // create a new API and check if it exists in the database
+  const transactionId = uuidv4();  
+  const apiCallName = "createAPIKey";
+  try {
+    // create a new API and check if it exists in the database
   let key = makeKey(24);
   let keyExists = await getAPIKey(key);
   // regenerate a new key if the old one already exists
@@ -76,6 +81,10 @@ export const createAPIKey = async (duration, { email }) => {
     ? query + `SET key.expirationDate = date() + Duration({days: $duration})`
     : query + `SET key.expirationDate = 'none'`;
   query = query + "RETURN key";
+
+  // Log that the API call has been initiated
+  logger.info(`Transaction ID: ${transactionId} - API: ${apiCallName} - User with email ${email} is creating an API key`);
+
   // write the key to the database
   const result = await runQuery({
     query,
@@ -88,21 +97,33 @@ export const createAPIKey = async (duration, { email }) => {
     database: process.env.NEO4J_DATABASE,
   });
   // if the user has insufficient permissions thow an error
-  if (!Array.isArray(result.records) || result.records.length === 0)
+  if (!Array.isArray(result.records) || result.records.length === 0) {
     throw new Error(
-      "Failed to create api key. You may not have sufficient privileges."
+      "Failed to update api key. You may not have sufficient privileges."
     );
+  }
   // unpack and return the api key
   const keyObject = result.records[0].get("key").properties;
-  return {
-    id: keyObject.id,
-    key: decrypt(keyObject.key),
-    expirationDate: keyObject.expirationDate,
-  };
+  if (keyObject) {
+    logger.info(`Transaction ID: ${transactionId} - API: ${apiCallName} - User with email ${email} created an API key having ID ${keyObject.id} and expiration date  ${keyObject.expirationDate} `);
+    return {
+      id: keyObject.id,
+      key: decrypt(keyObject.key),
+      expirationDate: keyObject.expirationDate,
+    };
+  }
+} catch(error) {
+    logger.error(`Transaction ID: ${transactionId} -  API: ${apiCallName} - User with email ${email}: ${error.message}`);
+    throw error;  // Rethrow the error after logging
+  }  
 };
 
 export const updateAPIKey = async (key, duration, { email }) => {
-  // get the api key if it exists
+
+  const transactionId = uuidv4();  
+  const apiCallName = "updateAPIKey";
+  try {
+    // get the api key if it exists
   const keyObject = await getAPIKey(key);
   if (!keyObject) throw new Error("The provided api key could not be found.");
   // match on the id and update the duration
@@ -115,6 +136,10 @@ export const updateAPIKey = async (key, duration, { email }) => {
     SET key.expirationDate = date() + Duration({days: $duration})
     RETURN key
   `;
+
+   // Log that the API call has been initiated
+   logger.info(`Transaction ID: ${transactionId} - API: ${apiCallName} - User with email ${email} is updating an API key`);
+
   const result = await runQuery({
     query,
     args: {
@@ -126,17 +151,25 @@ export const updateAPIKey = async (key, duration, { email }) => {
     database: process.env.NEO4J_DATABASE,
   });
   // if the user has insufficient permissions thow an error
-  if (!Array.isArray(result.records) || result.records.length === 0)
+  if (!Array.isArray(result.records) || result.records.length === 0) {
     throw new Error(
       "Failed to update api key. You may not have sufficient privileges."
     );
+  }
   // return updated key record
   const updatedKeyObject = result.records[0].get("key").properties;
-  return {
-    id: updatedKeyObject.id,
-    key: decrypt(updatedKeyObject.key),
-    expirationDate: updatedKeyObject.expirationDate,
-  };
+  if (updatedKeyObject) {
+    logger.info(`Transaction ID: ${transactionId} - API: ${apiCallName} - User with email ${email} updated an API key having ID ${updatedKeyObject.id} and expiration date  ${updatedKeyObject.expirationDate} `);
+    return {
+      id: updatedKeyObject.id,
+      key: decrypt(updatedKeyObject.key),
+      expirationDate: updatedKeyObject.expirationDate,
+    };
+  }
+  } catch(error) {
+    logger.error(`Transaction ID: ${transactionId} -  API: ${apiCallName} - User with email ${email}: ${error.message}`);
+    throw error;
+  }
 };
 
 // Helper to check if a key already exists in the database

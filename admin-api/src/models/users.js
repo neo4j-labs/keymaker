@@ -6,9 +6,14 @@ import {
   isLabsLicense
 } from "../util/license/license";
 import { runQuery, getDriver } from "../util/db";
+import { logger } from "../index";
+import { v4 as uuidv4 } from 'uuid';
 
 export const createUser = async (context) => {
-  const query = `
+  const transactionId = uuidv4();  
+  const apiCallName = "createUser";
+  try {
+    const query = `
       WITH  {
         neoDomains: ['neo4j.com','neo4j.org','neotechnology.com'],
         neoOrg: 'Neo4j'
@@ -45,6 +50,7 @@ export const createUser = async (context) => {
       ) YIELD value
       RETURN value.u as u
   `;
+  logger.info(`Transaction ID: ${transactionId} -  API: ${apiCallName} - Requesting user creation for ${context.email}`);
   const result = await runQuery({
     query,
     args: {
@@ -55,27 +61,49 @@ export const createUser = async (context) => {
     driver: getDriver(),
     database: process.env.NEO4J_DATABASE,
   });
-  return result.records[0].get("u").properties;
+  const createdUser = result.records[0].get("u").properties;
+  logger.info(`Transaction ID: ${transactionId} -  API: ${apiCallName} - User Node created for ${context.email}`);
+  return createdUser;
+  } catch(error) {
+    logger.error(`Transaction ID: ${transactionId} -  API: ${apiCallName} - Failed to create User for ${context.email}: ${error.message}`);
+    throw error;
+  } 
 };
 
 export const loginUser = async ({ email, password }) => {
-  const query = `
+  const transactionId = uuidv4();  
+  const apiCallName = "loginUser";
+  try {
+    const query = `
     MATCH (u:User)
     WHERE u.email=$email
     RETURN u
   `;
+  logger.info(`Transaction ID: ${transactionId} -  API: ${apiCallName} - User ${email} is attempting to Login`);
   const result = await runQuery({
     query,
     driver: getDriver(),
     args: { email, password },
     database: process.env.NEO4J_DATABASE,
   });
-  if (password === decrypt(result.records[0].get("u").properties.password))
+  if (password === decrypt(result.records[0].get("u").properties.password)) {
+    logger.info(`Transaction ID: ${transactionId} -  API: ${apiCallName} - User ${email} Logged in successfully`);
     return result.records[0].get("u").properties;
-  else return null;
+  }
+  else { 
+    logger.error(`Transaction ID: ${transactionId} -  API: ${apiCallName} - Login Failed for User ${email}: User credentials are incorrect`);
+    return null;
+  }
+   } catch(error) {
+    logger.error(`Transaction ID: ${transactionId} -  API: ${apiCallName} - Login Failed For User ${email}: ${error.message}`);
+    throw error;
+  }
 };
 
 export const createUserSignUp = async ({ email, password, name, picture }) => {
+  const transactionId = uuidv4();  
+  const apiCallName = "createUserSignUp";
+  try {
   const pass = encrypt(password);
   const query = `
     MERGE (u:User{email:$email})
@@ -93,13 +121,20 @@ export const createUserSignUp = async ({ email, password, name, picture }) => {
     MERGE (u)-[:HAS_USER_SETTINGS]->(us)
     RETURN u
   `;
+  logger.info(`Transaction ID: ${transactionId} -  API: ${apiCallName} - Requesting user registration for ${email}`);
   const result = await runQuery({
     query,
     driver: getDriver(),
     args: { email, pass, name, picture },
     database: process.env.NEO4J_DATABASE,
   });
-  return result.records[0].get("u").properties;
+  const createdUserRegistration = result.records[0].get("u").properties;
+  logger.info(`Transaction ID: ${transactionId} -  API: ${apiCallName} - User registration successful for ${email}`);
+  return createdUserRegistration;
+  } catch(error) {
+    logger.error(`Transaction ID: ${transactionId} -  API: ${apiCallName} - Failed to register User for ${email}: ${error.message}`);
+    throw error;
+  }
 };
 
 export const getCurrentUser = async ({ email }) => {
@@ -155,7 +190,10 @@ export const getUserRolesForNode = async ({ id }, context, node) => {
 };
 
 export const addUserRoleToNode = async ({ email, role, id }, context, node) => {
-  const query = `
+  const transactionId = uuidv4();  
+  const apiCallName = "addUserRoleToNode";
+  try {
+    const query = `
     MATCH (n:${node} {id: $id})
     MATCH (u1:User {email: $eid})
     MATCH (u2:User {email: $email})
@@ -171,13 +209,20 @@ export const addUserRoleToNode = async ({ email, role, id }, context, node) => {
     MERGE (u2)<-[:${role}]-(n)
     RETURN {user: {name: u2.name, email: u2.email, picture: u2.picture}, role: $role} AS userRole
   `;
+  logger.info(`Transaction ID: ${transactionId} -  API: ${apiCallName} - Request to assign role ${role} to user ${email} for node ${node} (ID: ${id})`);
   const result = await runQuery({
     query,
     driver: getDriver(),
     database: process.env.NEO4J_DATABASE,
     args: { email, role, id, eid: context.email, node },
   });
-  return result.records[0].get("userRole");
+  const createdUserRole = result.records[0].get("userRole");
+  logger.info(`Transaction ID: ${transactionId} -  API: ${apiCallName} -  User ${email} assigned role ${role} for node ${node} (ID: ${id})`);
+  return createdUserRole;
+  } catch(error) {
+    logger.error(`Transaction ID: ${transactionId} -  API: ${apiCallName} - Failed to assign User ${email} role for node ${node} (ID: ${id}): ${error.message}`);
+    throw error;
+  } 
 };
 
 export const editUserRoleOnNode = async (
@@ -185,7 +230,10 @@ export const editUserRoleOnNode = async (
   context,
   node
 ) => {
-  const query = `
+  const transactionId = uuidv4();  
+  const apiCallName = "editUserRoleOnNode";
+  try {
+    const query = `
     MATCH (n:${node} {id: $id})
     MATCH (u1:User {email: $eid})
     MATCH (u2:User {email: $email})
@@ -202,13 +250,20 @@ export const editUserRoleOnNode = async (
     MERGE (u2)<-[:${role}]-(n)
     RETURN {user: {name: u2.name, email: u2.email, picture: u2.picture}, role: $role} AS userRole
   `;
+  logger.info(`Transaction ID: ${transactionId} -  API: ${apiCallName} - Request to edit role ${role} for user ${email} having ${node} (ID: ${id})`);
   const result = await runQuery({
     query,
     driver: getDriver(),
     database: process.env.NEO4J_DATABASE,
     args: { email, role, id, eid: context.email, node },
   });
-  return result.records[0].get("userRole");
+  const editedUserRole = result.records[0].get("userRole");
+  logger.info(`Transaction ID: ${transactionId} -  API: ${apiCallName} -  Updated user role ${role} for User ${email}  for node ${node} (ID: ${id})`);
+  return editedUserRole;
+  } catch(error) {
+    logger.error(`Transaction ID: ${transactionId} -  API: ${apiCallName} - Failed to edit User role for User ${email} for node ${node} (ID: ${id}): ${error.message}`);
+    throw error;
+  }  
 };
 
 export const removeUserRoleFromNode = async (
@@ -216,7 +271,10 @@ export const removeUserRoleFromNode = async (
   context,
   node
 ) => {
-  const query = `
+  const transactionId = uuidv4();  
+  const apiCallName = "removeUserRoleFromNode";
+  try {
+    const query = `
     MATCH (n:${node} {id: $id})
     MATCH (u1:User {email: $eid})
     MATCH (u2:User {email: $email})
@@ -231,13 +289,20 @@ export const removeUserRoleFromNode = async (
     DELETE r
     RETURN {user: {name: u2.name, email: u2.email, picture: u2.picture}, role: $role} AS userRole
   `;
+  logger.info(`Transaction ID: ${transactionId} -  API: ${apiCallName} - Request to remove role ${role} for user ${email} having ${node} (ID: ${id})`);
   const result = await runQuery({
     query,
     driver: getDriver(),
     database: process.env.NEO4J_DATABASE,
     args: { email, role, id, eid: context.email, node },
   });
-  return result.records[0].get("userRole");
+  const deletedUserRole = result.records[0].get("userRole");
+  logger.info(`Transaction ID: ${transactionId} -  API: ${apiCallName} -  Removed user role ${role} for User ${email} for node ${node} (ID: ${id})`);
+  return deletedUserRole
+  } catch(error) {
+    logger.error(`Transaction ID: ${transactionId} -  API: ${apiCallName} - Failed to remove user role ${role} for User ${email} for node ${node} (ID: ${id}): ${error.message}`);
+    throw error;
+  } 
 };
 
 export const leaveNode = async ({ email, role, id }, context, node) => {
@@ -301,7 +366,10 @@ export const checkLicense = async () => {
 };
 
 export const acceptedEula = async (email) => {
-  let query = "";
+  const transactionId = uuidv4();  
+  const apiCallName = "acceptedEula";
+  try { 
+    let query = "";
   if (isEnterpriseLicense() || isEnterpriseTrialLicense()) {
     query = `
       OPTIONAL MATCH (u:User { email: $email})
@@ -328,17 +396,27 @@ export const acceptedEula = async (email) => {
       ELSE "false" END AS acceptedEula
     `;
   }
+
   const result = await runQuery({
     query,
     args: { email },
     driver: getDriver(),
     database: process.env.NEO4J_DATABASE,
   });
-  return result.records[0].get("acceptedEula");
+  const userHasAcceptedEula = result.records[0].get("acceptedEula");
+  if (userHasAcceptedEula) {
+    return userHasAcceptedEula;
+  } else {
+    logger.error(`Transaction ID: ${transactionId} -  API: ${apiCallName} - Login Failed for User ${email}: Issue with Eula or Keymaker license`);
+  }
+  } catch(error) {
+    logger.error(`Transaction ID: ${transactionId} -  API: ${apiCallName} - Login Failed for User ${email}: ${error.message}`);
+    throw error;
+  } 
 };
 
 export const logInLocalUser = async (email) => {
-  const query = `
+    const query = `
     MATCH (u:User)
     SET u.email=$email
     SET u.acceptedEula = true

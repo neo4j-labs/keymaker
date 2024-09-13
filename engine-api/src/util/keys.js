@@ -1,6 +1,7 @@
 var LRU = require("lru-cache");
 import { decrypt, encrypt } from "./encryption/crypto";
 import { runQuery, validateQueryResult, getDriver } from "./db";
+import { logger } from "../index";
 
 const ERROR_MESSAGE = "API key not found, it may have expired. If you have not received an API key or beleive yours has expired please contact your Neo4j administrator."
 
@@ -38,7 +39,7 @@ setInterval(() => {
 /* API key validation & cache management */
 /* TODO: figure out how to store encrypted keys */
 export const validateAPIKey = async (key) => {
-  // check if the cache containes the api key
+    // check if the cache containes the api key
   if (cache.has(key)) {
     // get the key from the cache
     const cachedKeyObject = cache.get(key);
@@ -68,7 +69,10 @@ export const validateAPIKey = async (key) => {
       // get exiration date
       const expirationDate = new Date(keyObject.expirationDate);
       // throw an error if the key is expired 
-      if (expirationDate < new Date()) throw new Error(ERROR_MESSAGE);
+      if (expirationDate < new Date()) {
+        logger.error(`${apiCallName} - API key expired`);
+        throw new Error(ERROR_MESSAGE); 
+      }
       // add the key to the cache w/its maxAge set to its expirationDate
       cache.set(key, keyObject, expirationDate.getTime() - new Date());
       return keyObject.securityOrg;
