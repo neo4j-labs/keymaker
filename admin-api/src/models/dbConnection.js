@@ -4,29 +4,37 @@ import {
   LicenseRestriction,
   getLicenseRestriction,
 } from "../util/license/license";
+import { logger } from "../index";
+import { v4 as uuidv4 } from 'uuid';
 
 /*
   Keymaker DB methods  
 */
 
 export const allDBConnectionsForUser = async (context) => {
-  const query = `
+  try {
+    const query = `
     MATCH (db:DBConnection),(u:User {email: $email})
-WHERE (u:Admin OR db.isPrivate = false OR exists((u)<-[:OWNER|MEMBER|VIEWER]-(db)))
+    WHERE (u:Admin OR db.isPrivate = false OR exists((u)<-[:OWNER|MEMBER|VIEWER]-(db)))
           AND u.primaryOrganization IS NOT NULL 
           AND u.primaryOrganization IN labels(db)
-RETURN db
+    RETURN db
   `;
-  const result = await runQuery({
+    const result = await runQuery({
     query,
     driver: getDriver(),
     args: { email: context.email },
     database: process.env.NEO4J_DATABASE,
-  });
-  const dbConnections = result.records.map(
-    (record) => record.get("db").properties
-  );
-  return dbConnections;
+    });
+    const dbConnections = result.records.map(
+      (record) => record.get("db").properties
+    );
+    return dbConnections;
+  } catch(error) {
+    // Log the error with transaction ID for traceability
+    logger.error(`Transaction ID: ${transactionId} - API: ${apiCallName} - Failed to retrieve DB connections for user with email ${context.email}: ${error.message}`);
+    throw new Error('Failed to retrieve DB connections'); 
+  } 
 };
 
 export const findDBConnection = async (id) => {
@@ -45,7 +53,11 @@ export const findDBConnection = async (id) => {
 };
 
 export const createDBConnection = async (args, context) => {
-  const { name, url, user, password, isPrivate } = args;
+  const transactionId = uuidv4();  
+  const apiCallName = "createDBConnection";
+
+  try {
+    const { name, url, user, password, isPrivate } = args;
   const maxNumberOfDatabases = getLicenseRestriction(
     LicenseRestriction.MaxNumberOfDatabases
   );
@@ -64,6 +76,9 @@ export const createDBConnection = async (args, context) => {
     CALL apoc.create.addLabels([db], [u.primaryOrganization]) YIELD node as dbConnectionNode
     RETURN db
   `;
+  // Log that the API call has been initiated
+  logger.info(`Transaction ID: ${transactionId} - API: ${apiCallName} - User with email ${context.email} is creating a new DB connection`);
+
   const result = await runQuery({
     query,
     args: {
@@ -78,15 +93,32 @@ export const createDBConnection = async (args, context) => {
     driver: getDriver(),
     database: process.env.NEO4J_DATABASE,
   });
-  return result &&
-    result.constructor &&
-    result.constructor.name === "Neo4jError"
-    ? new Error(result.message)
-    : result.records[0].get("db").properties;
+
+  // Check for Neo4jError and handle it if present
+  if (result && result.constructor && result.constructor.name === "Neo4jError") {
+    throw new Error(result.message);  // Throw the error to be caught in the catch block
+  }
+
+  const createdDB = result.records[0].get("db").properties;
+  // Log that the API call has been initiated
+  logger.info(`Transaction ID: ${transactionId} - API: ${apiCallName} - User with email ${context.email} created a new DB connection`);
+
+  return createdDB;
+
+  } catch(error) {
+    logger.error(`Transaction ID: ${transactionId} -  API: ${apiCallName} - Failed to create DB connection for user ${context.email}: ${error.message}`);
+    throw error;  // Rethrow the error after logging
+  }
 };
 
 export const editDBConnection = async (id, properties, context) => {
-  const isEditingCredentials =
+
+  // Generate a unique transaction ID for this API call
+  const transactionId = uuidv4();  
+  const apiCallName = "editDBConnection";
+
+  try {
+    const isEditingCredentials =
     "user" in properties &&
     "password" in properties &&
     properties.user !== "" &&
@@ -98,6 +130,7 @@ export const editDBConnection = async (id, properties, context) => {
     delete properties.user;
     delete properties.password;
   }
+
   const query = `
     MATCH (u:User {email: $email}), (db:DBConnection {id: $id})
     WHERE u.primaryOrganization IS NOT NULL 
@@ -108,17 +141,37 @@ export const editDBConnection = async (id, properties, context) => {
     SET db += $properties
     RETURN db
   `;
+
+  // Log when the API is accessed
+  logger.info(`Transaction ID: ${transactionId} - API: ${apiCallName} - A user with ${context.email} is attempting to edit the DB connection with ID ${id}`);
+
   const result = await runQuery({
     query,
     driver: getDriver(),
     database: process.env.NEO4J_DATABASE,
     args: { id, properties, email: context.email },
   });
-  return result.records[0].get("db").properties;
+
+  const editedDb = result.records[0].get("db").properties;
+
+  logger.info(`Transaction ID: ${transactionId} - API: ${apiCallName} - A user with ${context.email} edited the DB connection with ID ${id}`);
+
+  return editedDb;
+
+  } catch (error) {
+    // Log if any error occurs during the process
+    logger.error(`Transaction ID: ${transactionId} -  API: ${apiCallName} - Failed to edit DB connection with ID ${id} for user ${context.email}: ${error.message}`);
+    throw error;  // Rethrow the error after logging
+  }
 };
 
 export const deleteDBConnection = async (id, context) => {
-  const query = `
+
+  // Generate a unique transaction ID for this API call
+  const transactionId = uuidv4();  
+  const apiCallName = "deleteDBConnection";
+  try {
+    const query = `
     MATCH (u:User {email: $email} )
     MATCH (db:DBConnection {id: $id})
     WHERE u.primaryOrganization IS NOT NULL 
@@ -129,6 +182,10 @@ export const deleteDBConnection = async (id, context) => {
     CALL apoc.util.validate(EXISTS((:Engine)-[:CONNECTS_TO]->(db)),"cannot delete when engines are connected",[0])
     DETACH DELETE db
   `;
+
+  // Log when the API is accessed
+  logger.info(`Transaction ID: ${transactionId} - API: ${apiCallName} - A user with ${context.email} is attempting to delete the DB connection with ID ${id}`);
+
   const result = await runQuery({
     query,
     driver: getDriver(),
@@ -137,7 +194,16 @@ export const deleteDBConnection = async (id, context) => {
   });
   const wereNodesDeleted = result.summary.counters._stats.nodesDeleted > 0;
   if (wereNodesDeleted) {
+    // Log when the API is accessed
+    logger.info(`Transaction ID: ${transactionId} - API: ${apiCallName} - A user with ${context.email} deleted the DB connection with ID ${id}`);
     return { id };
+  } else {
+    throw new Error(`Transaction ID: ${transactionId} -  API: ${apiCallName} - Failed to remove DB connection with ID ${id} for user ${context.email}`); 
+  }
+  } catch(error) {
+    // Log if any error occurs during the process
+    logger.error(`Transaction ID: ${transactionId} -  API: ${apiCallName} - Failed to remove DB connection with ID ${id} for user ${context.email}: ${error.message}`);
+    throw error;  // Rethrow the error after logging
   }
 };
 

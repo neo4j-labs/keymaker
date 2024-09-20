@@ -18,6 +18,33 @@ import neo4j from "neo4j-driver";
 import { mergeTypeDefs, mergeResolvers } from '@graphql-tools/merge'
 import { loadFilesSync } from '@graphql-tools/load-files'
 import { runQuery, setDriver, getDriver } from './util/db';
+import packageInfo from "../package.json"
+import winston from "winston";
+import { format } from "winston";
+import DailyRotateFile from "winston-daily-rotate-file";
+
+// Set up the logger
+const logDir = process.env.LOGS_DIR || './../logs'
+export const logger = winston.createLogger({
+  level: process.env.LOG_LEVEL || 'info',  // Log level
+  format: format.combine(
+    format.timestamp({
+      format: 'YYYY-MM-DD HH:mm:ss',
+    }),
+    format.printf(info => `${info.timestamp} [${info.level.toUpperCase()}]: ${info.message}`)
+  ),
+  transports: [
+    new winston.transports.DailyRotateFile({
+      filename: `${logDir}/keymaker.log`, // Log file path
+      datePattern: 'YYYY-MM-DD',     // Daily log rotation
+      maxSize: process.env.LOG_MAX_SIZE || '20m',                // Max file size (e.g., 20MB)
+      maxFiles: process.env.LOG_RETENTION_PERIOD || '14d',               // Retention period (e.g., 14 days)
+    }),
+    new winston.transports.Console({  // Also log to console
+      format: winston.format.simple(),
+    }),
+  ],
+});
 
 const HOST_NAME = process.env.HOST_NAME || null;
 const HOST_PROTOCOL = process.env.HOST_PROTOCOL || "http";
@@ -38,7 +65,7 @@ const startApolloServer = async () => {
   }
 
   var driverConfig = {
-    // userAgent: `neo4j-solutions-workbench-api/v${VERSION}`
+    userAgent: `neo4j-keymaker-admin-api-execution/v${packageInfo.version}`
   };
   
   const uri = process.env.NEO4J_URI || "bolt://localhost:7687";
@@ -55,7 +82,7 @@ const startApolloServer = async () => {
     driverConfig
   );
   setDriver(driver);
-  
+
   const mergeTypes = (types, options) => {
     const schemaDefinition = options && typeof options.schemaDefinition === 'boolean' ? options.schemaDefinition : true
   
@@ -221,3 +248,4 @@ const testDbConnection = async function () {
       console.log(error);
   }
 }
+
