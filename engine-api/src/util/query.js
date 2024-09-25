@@ -7,233 +7,139 @@ const QUERY_START = `
   CALL apoc.util.validate(license = 'community', 'Cannot run Keymaker on a Neo4j community license', [license])
 `;
 
+// cypher stub helpers
+const PARALLEL_RUNTIME_QUERY_START = 
+  `cypher runtime=parallel
+  WITH [] AS results
+  CALL dbms.components() YIELD edition AS license 
+  CALL apoc.util.validate(license = 'community', 'Cannot run Keymaker on a Neo4j community license', [license])
+`;
+
 const QUERY_END = (first, skip) => {
   return `
   UNWIND results AS result
   WITH result 
-  ORDER BY result.score DESC
+  ORDER BY result.score DESC 
+  WITH result.item as item, toInteger(result.score) as score, result.details as details
+  WITH {item:item, score:score, details: details} as result
   RETURN collect(result)[${skip}..${skip + first}] AS results
 `;
 };
 
 // serial pipeline query builder
-export const buildPipelineQuery = (phases, first, skip) => {
-  let query = QUERY_START;
+export const buildPipelineQuery = (phases, first, skip, isParallelRuntimeEnabled) => {
+  let query = isParallelRuntimeEnabled ? PARALLEL_RUNTIME_QUERY_START : QUERY_START;
   for (var i = 0; i < phases.length; i++) {
     query += queryBuilders[phases[i].phaseType](i, phases[i]);
-    // query += queryBuilders[phases[i].phaseType](i, phases[i]);
-
   }
   query += QUERY_END(first, skip);
-  return query;
-};
-
-// parallel pipeline query builder
-export const _buildParallelPipelineQuery = (
-  phases,
-  first,
-  skip,
-  concurrency
-) => {
-  let query = QUERY_START;
-  for (var i = 0; i < phases.length; i++) {
-    let j = i;
-    let arr = [];
-    let flag = false;
-    while (
-      j < phases.length &&
-      phases[j].phaseType === "CypherDiscoveryPhase"
-    ) {
-      arr.push(phases[j].cypherQuery);
-      j++;
-      flag = true;
-    }
-    if (flag === true) {
-      query += cypherDiscoveryPhaseParallel(arr, concurrency);
-      flag = false;
-      i = j - 1;
-    } else {
-      query += queryBuilders[phases[i].phaseType](i, phases[i]);
-    }
-  }
-  query += QUERY_END(first, skip);
-  return query;
-};
-
-// parallel pipeline query with fallback to serial
-export const buildParallelPipelineQuery = (
-  phases,
-  first,
-  skip,
-  concurrency
-) => {
-  const subQuery1 = buildPipelineQuery(phases, first, skip);
-  const subQuery2 = _buildParallelPipelineQuery(
-    phases,
-    first,
-    skip,
-    concurrency
-  );
-  const query = `
-    CALL apoc.help("mapParallel") YIELD name WITH collect(name) AS names
-    CALL apoc.when(size(names) = 0, 
-    ${JSON.stringify(subQuery1)}, 
-    ${JSON.stringify(subQuery2)},
-    {params: $params, phases: $phases}) YIELD value
-    RETURN value.results AS results
-  `;
   return query;
 };
 
 /* -- Collection Query Builders -- */
 
-export const buildCollectionQuery = (phases) => {
-  let query = `WITH {} AS map`;
+export const buildCollectionQuery = (phases, isParallelRuntimeEnabled) => {
+  // Initialize the query based on the isParallelRuntimeEnabled flag
+  let query = isParallelRuntimeEnabled
+  ? `cypher runtime=parallel WITH {} AS prevMap`
+  : `WITH {} AS prevMap`;
   for (var i = 0; i < phases.length; i++) {
     query += queryBuilders[phases[i].phaseType](i, phases[i]);
   }
-  query += `RETURN map`;
+  query += `RETURN prevMap`;
   return query;
 };
 
-export const _buildParallelCollectionQuery = (phases, concurrency) => {
-  let query = `WITH {} AS map`;
-  query += cypherCollectionPhaseParallel(
-    phases.map((phase) => phase.cypherQuery),
-    concurrency
-  );
-  query += `RETURN map`;
-  return query;
-};
-
-export const buildParallelCollectionQuery = (phases, concurrency) => {
-  const subQuery1 = buildCollectionQuery(phases);
-  const subQuery2 = _buildParallelCollectionQuery(phases, concurrency);
-  const query = `
-    CALL apoc.help("mapParallel") YIELD name WITH collect(name) AS names
-    CALL apoc.when(size(names) = 0, 
-    ${JSON.stringify(subQuery1)}, 
-    ${JSON.stringify(subQuery2)},
-    {params: $params, phases: $phases}) YIELD value
-    RETURN value.map AS map
-  `;
-  return query;
-};
-
-/* -- Phase Builders -- */
-
-const cypherCollectionPhase = (i, _) => {
+const cypherCollectionPhase = (i, phase) => {
   return `
     //--collection phase--
-    CALL apoc.cypher.run(
-      $phases[${i}].cypherQuery+', $prevMap AS prevMap',
-      apoc.map.merge($params, {prevMap: map})
-    ) YIELD value
-    WITH apoc.map.merge(value.map, value.prevMap) AS map
+    WITH prevMap
+    CALL {
+      ${phase.cypherQuery}
+    }
+    WITH apoc.map.merge(map, prevMap) AS prevMap
   `;
 };
 
-const cypherCollectionPhaseParallel = (arr, concurrency) => {
+const cypherDiscoveryPhase = (i, phase) => {
   return `
-    //--collection phase parallel--
-    CALL apoc.cypher.mapParallel('CALL apoc.cypher.run(_, $params) YIELD value RETURN value', {params: $params, parallel: True, concurrency: ${concurrency}}, ${JSON.stringify(
-    arr
-  )}) YIELD value
-    WITH apoc.map.mergeList(collect(value.value.map)) AS map
+      //-- Phase ${i + 1}: Discovery Phase --
+      CALL {
+        WITH results
+        WITH results as prevResults
+        UNWIND prevResults AS value
+        RETURN value.item AS item, value.score AS score, value.details AS details
+        UNION ALL
+        ${phase.cypherQuery}
+      }
+      WITH DISTINCT item, score, details
+      WITH item, sum(score) AS score, apoc.map.mergeList(collect(details)) AS details
+      WITH {item: item, score: score, details: details} AS result
+      WITH collect(result) AS results
   `;
 };
 
-const cypherDiscoveryPhase = (i, _) => {
+const cypherBoostPhase = (i, phase) => {
   return `
-    //--discovery phase--
-    CALL apoc.cypher.run(
-      $phases[${i}].cypherQuery+' UNION ALL UNWIND $prevResults AS value RETURN value.item AS item, value.score AS score, value.details as details',
-      apoc.map.merge($params, { prevResults: results })
-    ) YIELD value
-    WITH DISTINCT value.item as item, value.score as score, value.details as detailsMap
-    WITH item,  sum(score) as score,  apoc.map.mergeList(collect(detailsMap)) as details
+    //--boost phase--
+    CALL {
+      WITH results 
+      WITH results AS prevResults
+      UNWIND prevResults AS result
+      WITH result.item AS this, result.score AS _score, result.details AS _details, prevResults
+      ${phase.cypherQuery}
+      UNION ALL
+      WITH results
+      UNWIND results AS value
+      RETURN value.item AS item, value.score AS score, value.details AS details
+
+    }
+    WITH DISTINCT item, score, details
+    WITH item, sum(score) AS score, apoc.map.mergeList(collect(details)) AS details
     WITH {item: item, score: score, details: details} AS result
     WITH collect(result) AS results
   `;
 };
 
-const cypherDiscoveryPhaseParallel = (arr, concurrency) => {
-  return `
-    //--discovery phase parallel--
-    CALL apoc.cypher.mapParallel(
-      'CALL apoc.cypher.run(_, $params) YIELD value RETURN value AS results, $params.prevResults AS prevResults',
-      {params: apoc.map.merge($params, { prevResults: results }), parallel: True, concurrency: ${concurrency}}, ${JSON.stringify(
-    arr
-  )}) YIELD value
-    WITH value.results AS results, value.prevResults AS prevResults
-    WITH prevResults, collect(results) as collectResults
-    WITH collectResults + prevResults AS results
-    UNWIND results AS result
-    //keymaker 5.0 cypher syntax change
-
-    WITH result.item as item, sum(result.score) as score, apoc.map.mergeList(collect(result.details)) as detailsMap
-
-    WITH {item: item, score: score, details: detailsMap} AS mergedRecord
-    WITH collect(mergedRecord) AS results 
-  `;
-};
-
-const cypherBoostPhase = (i, _) => {
-  return `
-    //--boost phase--
-    CALL apoc.cypher.run(
-      'UNWIND $results AS result WITH result.item AS this, result.score as _score, result.details AS _details ' + $phases[${i}].cypherQuery
-      +' UNION ALL UNWIND $prevResults AS value RETURN value.item AS item, value.score AS score, value.details as details',
-      apoc.map.merge($params, {results: results, prevResults: results})
-    ) YIELD value
-
-    //keymaker 5.0 cypher syntax change
-
-    WITH value.item as item, sum(value.score) as score, apoc.map.mergeList(collect(value.details)) as detailsMap
-
-    WITH {item: item, score: score, details: detailsMap} AS result
-    WITH collect(result) AS results
-  `;
-};
-
-// -- Pending --
-// const cypherBoostPhaseParallel = (i, _) => {
-//   return `
-//     //--boost phase--
-//       CALL apoc.cypher.mapParallel2("WITH _ as
-//       $phases[${i}].cypherQuery",{$params},{results})
-//     ) YIELD value
-//     UNION ALL UNWIND $prevResults AS value RETURN value.item AS item, value.score AS score, value.details as details
-//     WITH {item:value.item, score:sum(value.score), details:apoc.map.mergeList(collect(value.details))} AS result
-//     WITH collect(result) AS results
-//   `;
-// };
-
 const cypherExcludePhase = (i, phase) => {
   const invert = phase.inverted ? "" : " NOT";
   return `
     //--exclude phase--
-    WITH [result IN results WHERE 
-      apoc.cypher.runFirstColumnSingle(
-        'WITH $item AS this, $score as _score, $details AS _details '+$phases[${i}].cypherQuery,
-        apoc.map.merge($params, {item:result.item, score:result.score, details:result.details})
-      ) IS${invert} null 
-    | result] AS results
+    UNWIND results as result
+    WITH result.item AS this, result.score AS _score, result.details AS _details, result
+    WHERE ${invert} EXISTS {
+    WITH this, _score, _details
+    ${phase.cypherQuery}
+    }
+    WITH collect(result) AS results
   `;
 };
 
-const cypherDiversityPhase = (i, _) => {
+const cypherDiversityPhase = (i, phase) => {
   return `
     //--diversity phase--
     UNWIND results AS result
-    WITH result, result.score AS score
-    ORDER BY score DESC
-    WITH apoc.cypher.runFirstColumnSingle(
-      'WITH $item AS this,  $score as _score, $details AS _details '+$phases[${i}].cypherQuery,
-        apoc.map.merge($params, {item:result.item, score:result.score, details:result.details})
-    ) AS attribute, collect(result)[0..$phases[${i}].maxAmount] AS topScoringPerAttribute
-    WITH apoc.coll.flatten(collect(topScoringPerAttribute)) AS results
-  `;
+    WITH result.item as item, result.score AS score, result.details as details, result
+    CALL {
+    WITH item,score, details
+    WITH item as this, score as _score, details as _details
+    ${phase.cypherQuery}
+    }
+    // Merge the attribute back into the result
+    WITH apoc.map.merge(result, {attribute: attribute}) AS resultWithAttribute
+    ORDER BY resultWithAttribute.attribute, resultWithAttribute.score DESC
+
+    // Collect results per attribute
+    WITH resultWithAttribute.attribute AS attribute, collect(resultWithAttribute) AS resultsPerAttribute
+
+    // Limit results per attribute
+    WITH attribute, resultsPerAttribute[0..${phase.maxAmount}] AS limitedResultsPerAttribute
+
+    // Collect all limited results into a single list
+    WITH collect(limitedResultsPerAttribute) AS listOfLists
+
+    // Flatten the list of lists into a single list of results
+    WITH apoc.coll.flatten(listOfLists) AS results`;
 };
 
 /* 
