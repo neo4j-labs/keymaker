@@ -61,6 +61,8 @@ const EditDatabaseConnectionModal = ({
   const [showUserError, setShowUserError] = useState(false);
   const [showPasswordError, setShowPasswordError] = useState(false);
   const [isPrivate, setIsPrivate] = useState(dbConnection.isPrivate);
+  const [isParallelRuntimeEnabled, setIsParallelRuntimeEnabled] = useState(dbConnection.isParallelRuntimeEnabled);
+
   const [isUpdatingCredentials, setIsUpdatingCredentials] = useState(false);
 
   const [showError, setShowError] = React.useState(false);
@@ -73,6 +75,7 @@ const EditDatabaseConnectionModal = ({
     setName(dbConnection.name);
     setIsUpdatingCredentials(false);
     setIsPrivate(dbConnection.isPrivate);
+    setIsParallelRuntimeEnabled(dbConnection.isParallelRuntimeEnabled);
   };
 
   const resetErrors = () => {
@@ -145,7 +148,7 @@ const EditDatabaseConnectionModal = ({
     ) {
       const variables = {
         id: dbConnection.id,
-        properties: { name, url, user, password, isPrivate },
+        properties: { name, url, user, password, isPrivate, isParallelRuntimeEnabled },
       };
       runMutation(
         mutations.EDIT_DB_CONNECTION,
@@ -198,6 +201,14 @@ const EditDatabaseConnectionModal = ({
             toggle
             checked={isPrivate}
             onChange={() => setIsPrivate(!isPrivate)}
+          />
+        </UpdateDBDomain>
+        <UpdateDBDomain>
+          <TextBold>Parallel Runtime</TextBold>
+          <Radio
+            toggle
+            checked={isParallelRuntimeEnabled}
+            onChange={() => setIsParallelRuntimeEnabled(!isParallelRuntimeEnabled)}
           />
         </UpdateDBDomain>
         {!isUpdatingCredentials && (
@@ -267,6 +278,7 @@ EditDatabaseConnectionModal.propTypes = {
     url: PropTypes.string.isRequired,
     name: PropTypes.string.isRequired,
     isPrivate: PropTypes.bool.isRequired,
+    isParallelRuntimeEnabled: PropTypes.bool.isRequired,
     dbInfo: PropTypes.shape({
       hasApoc: PropTypes.bool.isRequired,
       isConnected: PropTypes.bool.isRequired,

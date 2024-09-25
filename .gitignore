@@ -25,3 +25,6 @@ ui/node_modules/
 #logs folders
 /logs/
 
+#license
+enterprise-license.lic
+
