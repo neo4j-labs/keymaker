@@ -20,7 +20,7 @@ const QUERY_END = (first, skip) => {
   UNWIND results AS result
   WITH result 
   ORDER BY result.score DESC 
-  WITH result.item as item, toInteger(result.score) as score, result.details as details
+  WITH DISTINCT result.item as item, toInteger(result.score) as score, result.details as details
   WITH {item:item, score:score, details: details} as result
   RETURN collect(result)[${skip}..${skip + first}] AS results
 `;
@@ -94,15 +94,15 @@ const cypherBoostPhase = (i, phase) => {
       RETURN value.item AS item, value.score AS score, value.details AS details
 
     }
-    WITH DISTINCT item, score, details
-    WITH item, sum(score) AS score, apoc.map.mergeList(collect(details)) AS details
+    WITH item, score, details
+    WITH DISTINCT item, sum(score) AS score, apoc.map.mergeList(collect(details)) AS details
     WITH {item: item, score: score, details: details} AS result
     WITH collect(result) AS results
   `;
 };
 
 const cypherExcludePhase = (i, phase) => {
-  const invert = phase.inverted ? "" : " NOT";
+  const invert = phase.inverted ? "NOT" : "";
   return `
     //--exclude phase--
     UNWIND results as result
