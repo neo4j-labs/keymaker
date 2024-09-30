@@ -5,7 +5,7 @@ import * as compose from "lodash.flowright";
 import { useQuery } from "@apollo/client";
 import { graphql } from "@apollo/client/react/hoc";
 import { Query } from "@apollo/client/react/components";
-import { Form, Message } from "semantic-ui-react";
+import { Form, Message,Radio } from "semantic-ui-react";
 
 import FormModal from "../../components/FormModal";
 
@@ -35,6 +35,32 @@ export const Text = styled.div`
   font-size: 0.92857143em;
 `;
 
+export const UpdateDBDomain = styled.div`
+  diaplay: flex;
+  flex-direction: column;
+  margin-bottom: 15px;
+`;
+
+export const TextBold = styled.div`
+  color: rgba(0, 0, 0, 0.87);
+  font-weight: 600;
+  padding: 0 0 5px 0;
+  font-size: 0.92857143em;
+`;
+
+export const NoteOnParallelRuntime = styled.div`
+  color: #008bc1;
+  font-weight: 500;
+  padding: 0 0 5px 0;
+  font-size: 0.92857143em;
+
+  a {
+    color: inherit;
+    text-decoration: underline;
+    margin-left: 5px;
+  }
+`;
+
 const EditEngineModal = ({ isOpen, onClose, engine, ...mutations }) => {
   // props
   const engineID = engine.id;
@@ -46,6 +72,7 @@ const EditEngineModal = ({ isOpen, onClose, engine, ...mutations }) => {
     returnLabel: startReturnLabel,
     returnProperties: startReturnProperties,
     dataModel: startDataModel,
+    isParallelRuntimeEnabled: startIsParallelRuntimeEnabled
   } = engine;
 
   // state
@@ -58,6 +85,8 @@ const EditEngineModal = ({ isOpen, onClose, engine, ...mutations }) => {
     startReturnProperties
   );
   const [dataModel, setDataModel] = useState(startDataModel);
+  const [isParallelRuntimeEnabled, setIsParallelRuntimeEnabled] = useState(startIsParallelRuntimeEnabled);
+
 
   const [showDBError, setShowDBError] = useState(false);
   const [showNameError, setShowNameError] = useState(false);
@@ -89,6 +118,7 @@ const EditEngineModal = ({ isOpen, onClose, engine, ...mutations }) => {
     setDBConnection(startDBConnection);
     setReturnLabel(startReturnLabel);
     setReturnProperties(startReturnProperties);
+    setIsParallelRuntimeEnabled(startIsParallelRuntimeEnabled);
   };
 
   const resetErrors = () => {
@@ -148,6 +178,7 @@ const EditEngineModal = ({ isOpen, onClose, engine, ...mutations }) => {
           dataModel,
           description,
           returnLabel,
+          isParallelRuntimeEnabled,
           databaseName,
           returnProperties,
         },
@@ -400,6 +431,24 @@ const EditEngineModal = ({ isOpen, onClose, engine, ...mutations }) => {
             );
           }}
         </Query>
+        <UpdateDBDomain>
+          <TextBold>Parallel Runtime</TextBold>
+          <Radio
+            toggle
+            checked={isParallelRuntimeEnabled}
+            onChange={() => setIsParallelRuntimeEnabled(!isParallelRuntimeEnabled)}
+          />
+        </UpdateDBDomain>
+        <NoteOnParallelRuntime>
+         Note: Enable Parallel Runtime for complex queries if your DB supports it.
+          <a
+            href="https://neo4j.com/docs/cypher-manual/current/planning-and-tuning/runtimes/reference/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            [Learn More]
+          </a>
+        </NoteOnParallelRuntime>
       </Form>
       {showError ? (
         <Message
