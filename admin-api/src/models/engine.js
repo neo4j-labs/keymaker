@@ -76,8 +76,9 @@ export const createEngine = async (input, context) => {
       MATCH (u:User {email: email})
       MATCH (db:DBConnection {id: dbID})
       OPTIONAL MATCH (currentEngine:Engine)
-      // added a condition here in case there are 0 engines present
-      CALL apoc.util.validate((u.primaryOrganization IN coalesce(labels(currentEngine),[]) AND (currentEngine.id IS NULL OR currentEngine.id = engineProps.id)), 'The Engine Already Exists', [0])
+      WHERE u.primaryOrganization IN labels(currentEngine) AND currentEngine.id = engineProps.id
+      WITH currentEngine, u,db,engineProps,maxNumberOfEngines LIMIT 1
+      CALL apoc.util.validate(currentEngine IS NOT NULL, 'The Engine Already Exists', [0])
       CALL apoc.util.validate(u.primaryOrganization IS NULL, 'The calling User is not configured correctly', [0])
       CALL apoc.util.validate(NOT (EXISTS((u)<-[:OWNER|MEMBER|VIEWER]-(db)) OR db.isPrivate<>true OR u:Admin),"permission denied",[0])
       OPTIONAL MATCH (existing:Engine)

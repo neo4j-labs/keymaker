@@ -1,8 +1,6 @@
 import {
   buildPipelineQuery,
-  buildCollectionQuery,
-  buildParallelPipelineQuery,
-  buildParallelCollectionQuery,
+  buildCollectionQuery
 } from "../util/query.js";
 import { performance } from "perf_hooks";
 import { initializeDriver, runQuery } from "../util/db.js";
@@ -17,8 +15,12 @@ export const getEngineResults = async (
 ) => {
   const { returnProperties, phases, dbConnection, databaseName } = engine;
   try {
+    //Check if parallel runtime is enabled for engine and db connection
+    // console.log("Engine Check", engine.isParallelRuntimeEnabled, "DB check" , dbConnection.isParallelRuntimeEnabled)
     let isRead = false;
     let allParams = params;
+    let isParallelRuntimeEnabled = (dbConnection.isParallelRuntimeEnabled && engine.isParallelRuntimeEnabled) || false
+    // console.log("isParallelRuntimeEnabled - ", isParallelRuntimeEnabled)
     const driver = initializeDriver({ dbConnection });
     const activePhases = phases.filter((phase) => phase.active);
     // set is read flag
@@ -39,38 +41,36 @@ export const getEngineResults = async (
       (phase) => phase.phaseType === "CypherCollectionPhase"
     );
     if (collectionPhases.length !== 0) {
-      const collectionQuery = parallel
-        ? buildParallelCollectionQuery(collectionPhases, concurrency)
-        : buildCollectionQuery(collectionPhases);
+      const collectionQuery = buildCollectionQuery(collectionPhases, isParallelRuntimeEnabled);
       let res = await runQuery({
         driver,
         isRead: true,
         query: collectionQuery,
         args: {
-          params,
+          // params,
+          ...params,
           phases: collectionPhases,
         },
         database: databaseName,
       });
       allParams = {
         ...params,
-        ...res.records[0].get("map"),
+        ...res.records[0].get("prevMap"),
       };
     }
     // build the main pipeline query
     const pipelinePhases = activePhases.filter(
       (phase) => phase.phaseType !== "CypherCollectionPhase"
     );
-    const pipelineQuery = parallel
-      ? buildParallelPipelineQuery(pipelinePhases, first, skip, concurrency)
-      : buildPipelineQuery(pipelinePhases, first, skip);
-    // run the pipeline query
+    const pipelineQuery = buildPipelineQuery(pipelinePhases, first, skip, isParallelRuntimeEnabled);
+    // console.log("Pipeline Query - ", pipelineQuery,"Params : ",allParams)    // print the complied query
     let results = await runQuery({
       driver,
       isRead,
       query: pipelineQuery,
       args: {
-        params: allParams,
+        // params: allParams,
+        ...allParams,
         phases: pipelinePhases,
       },
       database: databaseName,
@@ -108,6 +108,7 @@ export const getEnginePerformanceResults = async (
   try {
     let isRead = false;
     let allParams = params;
+    let isParallelRuntimeEnabled = (dbConnection.isParallelRuntimeEnabled && engine.isParallelRuntimeEnabled) || false
     const driver = initializeDriver({ dbConnection });
     const activePhases = phases.filter((phase) => phase.active);
     // set is read flag
@@ -128,31 +129,28 @@ export const getEnginePerformanceResults = async (
       (phase) => phase.phaseType === "CypherCollectionPhase"
     );
     if (collectionPhases.length !== 0) {
-      const collectionQuery = parallel
-        ? buildParallelCollectionQuery(collectionPhases, concurrency)
-        : buildCollectionQuery(collectionPhases);
+      const collectionQuery = buildCollectionQuery(collectionPhases, isParallelRuntimeEnabled);
       let res = await runQuery({
         driver,
         isRead: true,
         query: collectionQuery,
         args: {
-          params,
+          // params,
+          ...params,
           phases: collectionPhases,
         },
         database: databaseName,
       });
       allParams = {
         ...params,
-        ...res.records[0].get("map"),
+        ...res.records[0].get("prevMap"),
       };
     }
     // build the main pipeline query
     const pipelinePhases = activePhases.filter(
       (phase) => phase.phaseType !== "CypherCollectionPhase"
     );
-    const pipelineQuery = parallel
-      ? buildParallelPipelineQuery(pipelinePhases, first, skip, concurrency)
-      : buildPipelineQuery(pipelinePhases, first, skip);
+    const pipelineQuery = buildPipelineQuery(pipelinePhases, first, skip, isParallelRuntimeEnabled);
     // run the pipeline query
     let startnow = performance.now()
     let results = await runQuery({
@@ -160,7 +158,8 @@ export const getEnginePerformanceResults = async (
       isRead,
       query: pipelineQuery,
       args: {
-        params: allParams,
+        // params: allParams,
+        ...allParams,
         phases: pipelinePhases,
       },
       database: databaseName,

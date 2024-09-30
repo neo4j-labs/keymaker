@@ -91,7 +91,7 @@ const _runEngine = async (root, args, context, info) => {
   const apiCallName = "_runEngine";
 
   const engine = await getEngine(args, context);
-  console.log("engine info", engine)
+  // console.log("Engine details - ",engine)
   try {
     logger.info(`Transaction ID: ${transactionId} - API: ${apiCallName} - Engine - "${engine.id}" execution initiated`);
     const startTime = Date.now();  // Capture the start time

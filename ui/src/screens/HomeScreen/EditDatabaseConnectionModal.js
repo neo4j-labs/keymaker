@@ -29,11 +29,29 @@ export const UpdateDBDomain = styled.div`
   margin-bottom: 15px;
 `;
 
+export const FlexContainer = styled.div`
+  display: flex;
+  align-items: center; /* Align items vertically in the center */
+  gap: 10px; /* Adjust the gap between the two components if necessary */
+`;
+
 export const TextBold = styled.div`
   color: rgba(0, 0, 0, 0.87);
   font-weight: 600;
   padding: 0 0 5px 0;
   font-size: 0.92857143em;
+`;
+
+export const NoteOnParallelRuntime = styled.div`
+  color: #008bc1;
+  font-weight: 500;
+  padding: 0 0 5px 0;
+  font-size: 0.92857143em;
+  a {
+    color: inherit;
+    text-decoration: underline;
+    margin-left: 5px;
+  }
 `;
 
 export const Text = styled.div`
@@ -61,6 +79,8 @@ const EditDatabaseConnectionModal = ({
   const [showUserError, setShowUserError] = useState(false);
   const [showPasswordError, setShowPasswordError] = useState(false);
   const [isPrivate, setIsPrivate] = useState(dbConnection.isPrivate);
+  const [isParallelRuntimeEnabled, setIsParallelRuntimeEnabled] = useState(dbConnection.isParallelRuntimeEnabled);
+
   const [isUpdatingCredentials, setIsUpdatingCredentials] = useState(false);
 
   const [showError, setShowError] = React.useState(false);
@@ -73,6 +93,7 @@ const EditDatabaseConnectionModal = ({
     setName(dbConnection.name);
     setIsUpdatingCredentials(false);
     setIsPrivate(dbConnection.isPrivate);
+    setIsParallelRuntimeEnabled(dbConnection.isParallelRuntimeEnabled);
   };
 
   const resetErrors = () => {
@@ -145,7 +166,7 @@ const EditDatabaseConnectionModal = ({
     ) {
       const variables = {
         id: dbConnection.id,
-        properties: { name, url, user, password, isPrivate },
+        properties: { name, url, user, password, isPrivate, isParallelRuntimeEnabled },
       };
       runMutation(
         mutations.EDIT_DB_CONNECTION,
@@ -198,6 +219,26 @@ const EditDatabaseConnectionModal = ({
             toggle
             checked={isPrivate}
             onChange={() => setIsPrivate(!isPrivate)}
+          />
+        </UpdateDBDomain>
+        <UpdateDBDomain>
+        <FlexContainer>
+          <TextBold>Parallel Runtime</TextBold>
+          <NoteOnParallelRuntime>
+           ( Enable only if supported by the database 
+          <a
+            href="https://neo4j.com/docs/cypher-manual/current/planning-and-tuning/runtimes/reference/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            [Learn More])
+          </a>
+        </NoteOnParallelRuntime>
+          </FlexContainer>
+          <Radio
+            toggle
+            checked={isParallelRuntimeEnabled}
+            onChange={() => setIsParallelRuntimeEnabled(!isParallelRuntimeEnabled)}
           />
         </UpdateDBDomain>
         {!isUpdatingCredentials && (
@@ -267,6 +308,7 @@ EditDatabaseConnectionModal.propTypes = {
     url: PropTypes.string.isRequired,
     name: PropTypes.string.isRequired,
     isPrivate: PropTypes.bool.isRequired,
+    isParallelRuntimeEnabled: PropTypes.bool.isRequired,
     dbInfo: PropTypes.shape({
       hasApoc: PropTypes.bool.isRequired,
       isConnected: PropTypes.bool.isRequired,

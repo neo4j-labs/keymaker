@@ -8,6 +8,7 @@ const ALL_DB_CONNECTIONS_FOR_USER = gql`
       name
       createdAt
       isPrivate
+      isParallelRuntimeEnabled
       canCurrentUserEdit
       canCurrentUserDelete
       engines {
@@ -82,6 +83,7 @@ const EDIT_DB_CONNECTION = gql`
       name
       url
       isPrivate
+      isParallelRuntimeEnabled
       dbInfo {
         isConnected
         license
