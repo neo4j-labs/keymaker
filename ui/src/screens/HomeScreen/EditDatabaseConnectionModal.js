@@ -29,11 +29,29 @@ export const UpdateDBDomain = styled.div`
   margin-bottom: 15px;
 `;
 
+export const FlexContainer = styled.div`
+  display: flex;
+  align-items: center; /* Align items vertically in the center */
+  gap: 10px; /* Adjust the gap between the two components if necessary */
+`;
+
 export const TextBold = styled.div`
   color: rgba(0, 0, 0, 0.87);
   font-weight: 600;
   padding: 0 0 5px 0;
   font-size: 0.92857143em;
+`;
+
+export const NoteOnParallelRuntime = styled.div`
+  color: #008bc1;
+  font-weight: 500;
+  padding: 0 0 5px 0;
+  font-size: 0.92857143em;
+  a {
+    color: inherit;
+    text-decoration: underline;
+    margin-left: 5px;
+  }
 `;
 
 export const Text = styled.div`
@@ -204,7 +222,19 @@ const EditDatabaseConnectionModal = ({
           />
         </UpdateDBDomain>
         <UpdateDBDomain>
+        <FlexContainer>
           <TextBold>Parallel Runtime</TextBold>
+          <NoteOnParallelRuntime>
+           ( Enable only if supported by the database 
+          <a
+            href="https://neo4j.com/docs/cypher-manual/current/planning-and-tuning/runtimes/reference/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            [Learn More])
+          </a>
+        </NoteOnParallelRuntime>
+          </FlexContainer>
           <Radio
             toggle
             checked={isParallelRuntimeEnabled}
