@@ -11,6 +11,7 @@ export default `
     createdAt: String
     users: [UserRole]
     isPrivate: Boolean
+    isParallelRuntimeEnabled: Boolean
     databases: [String]
     canCurrentUserEdit: Boolean
     canCurrentUserDelete: Boolean
@@ -45,6 +46,7 @@ export default `
     user: String
     password: String
     isPrivate: Boolean
+    isParallelRuntimeEnabled:Boolean
   }
   
   type Query {

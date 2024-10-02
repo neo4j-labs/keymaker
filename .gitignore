@@ -18,5 +18,13 @@ engine-api/node_modules/
 ui/.env
 ui/node_modules/
 
+#testing folders
+/test/
+/testing/
 
+#logs folders
+/logs/
+
+#license
+enterprise-license.lic
 

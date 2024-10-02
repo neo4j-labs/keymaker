@@ -7,6 +7,7 @@ const ALL_ENGINES_FOR_USER = gql`
       name
       createdAt
       isPrivate
+      isParallelRuntimeEnabled
       description
       databaseName
       canCurrentUserDelete
@@ -36,6 +37,7 @@ const GET_ENGINE_BY_ID = gql`
       id
       name
       isPrivate
+      isParallelRuntimeEnabled
       phases {
         id
         name
@@ -104,6 +106,7 @@ const EDIT_ENGINE = gql`
       id
       name
       isPrivate
+      isParallelRuntimeEnabled
       description
       returnLabel
       returnProperties
