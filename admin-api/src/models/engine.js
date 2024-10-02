@@ -5,6 +5,8 @@ import {
   getLicenseRestriction,
   LicenseRestriction,
 } from "../util/license/license";
+import { logger } from "../index";
+import { v4 as uuidv4 } from 'uuid';
 
 export const findEngineByID = async (id, context) => {
   const query = `
@@ -52,59 +54,73 @@ export const allEnginesForUser = async (context) => {
 };
 
 export const createEngine = async (input, context) => {
-  const maxNumberOfEngines = getLicenseRestriction(
-    LicenseRestriction.MaxNumberOfEngines
-  );
-  const dbID = input.dbConnectionID;
-  const engineProps = {
-    id: input.id,
-    name: input.name,
-    databaseName: input.databaseName,
-    description: input.description,
-    isPrivate: input.isPrivate,
-    returnLabel: input.returnLabel,
-    returnProperties: input.returnProperties,
-    dataModel: input.dataModel,
-  };
-  const query = `
-    WITH $email as email, $dbID as dbID, $engineProps as engineProps,$maxNumberOfEngines as maxNumberOfEngines
-    MATCH (u:User {email: email})
-    MATCH (db:DBConnection {id: dbID})
-    OPTIONAL MATCH (currentEngine:Engine)
-    // added a condition here in case there are 0 engines present
-    CALL apoc.util.validate((u.primaryOrganization IN coalesce(labels(currentEngine),[]) AND (currentEngine.id IS NULL OR currentEngine.id = engineProps.id)), 'The Engine Already Exists', [0])
-    CALL apoc.util.validate(u.primaryOrganization IS NULL, 'The calling User is not configured correctly', [0])
-    CALL apoc.util.validate(NOT (EXISTS((u)<-[:OWNER|MEMBER|VIEWER]-(db)) OR db.isPrivate<>true OR u:Admin),"permission denied",[0])
-    OPTIONAL MATCH (existing:Engine)
-    WITH u, db, engineProps,maxNumberOfEngines,COUNT(existing) AS numExistingEngines
-    CALL apoc.util.validate(numExistingEngines >= maxNumberOfEngines,"Max number of licensed engines reached",[0])
-    CREATE (u)<-[:CREATOR]-(engine:Engine)
-    CREATE (u)<-[:OWNER]-(engine)
-    CREATE (engine)-[:CONNECTS_TO]->(db)
-    SET engine.createdAt = timestamp()
-    SET engine += engineProps
-    WITH engine, u, db
-    CALL apoc.create.addLabels([engine], [u.primaryOrganization]) YIELD node as dbConnectionNode
-    RETURN engine, [] AS phases, toString(engine.createdAt) AS createdAt, db AS dbConnection
-  `;
-  const result = await runQuery({
-    query,
-    args: {
-      dbID,
-      engineProps,
-      email: context.email,
-      maxNumberOfEngines: maxNumberOfEngines,
-    },
-    driver: getDriver(),
-    database: process.env.NEO4J_DATABASE,
-  });
-  if (result.code && result.code.includes("ConstraintValidationFailed"))
-    return new Error("An engine with that id already exists");
-  return result &&
-    result.constructor &&
-    result.constructor.name === "Neo4jError"
-    ? new Error(result.message)
-    : getEngineFromRecord(result.records[0]);
+  const transactionId = uuidv4();  
+  const apiCallName = "createEngine";
+  try {
+    const maxNumberOfEngines = getLicenseRestriction(
+      LicenseRestriction.MaxNumberOfEngines
+    );
+    const dbID = input.dbConnectionID;
+    const engineProps = {
+      id: input.id,
+      name: input.name,
+      databaseName: input.databaseName,
+      description: input.description,
+      isPrivate: input.isPrivate,
+      returnLabel: input.returnLabel,
+      returnProperties: input.returnProperties,
+      dataModel: input.dataModel,
+    };
+    const query = `
+      WITH $email as email, $dbID as dbID, $engineProps as engineProps,$maxNumberOfEngines as maxNumberOfEngines
+      MATCH (u:User {email: email})
+      MATCH (db:DBConnection {id: dbID})
+      OPTIONAL MATCH (currentEngine:Engine)
+      WHERE u.primaryOrganization IN labels(currentEngine) AND currentEngine.id = engineProps.id
+      WITH currentEngine, u,db,engineProps,maxNumberOfEngines LIMIT 1
+      CALL apoc.util.validate(currentEngine IS NOT NULL, 'The Engine Already Exists', [0])
+      CALL apoc.util.validate(u.primaryOrganization IS NULL, 'The calling User is not configured correctly', [0])
+      CALL apoc.util.validate(NOT (EXISTS((u)<-[:OWNER|MEMBER|VIEWER]-(db)) OR db.isPrivate<>true OR u:Admin),"permission denied",[0])
+      OPTIONAL MATCH (existing:Engine)
+      WITH u, db, engineProps,maxNumberOfEngines,COUNT(existing) AS numExistingEngines
+      CALL apoc.util.validate(numExistingEngines >= maxNumberOfEngines,"Max number of licensed engines reached",[0])
+      CREATE (u)<-[:CREATOR]-(engine:Engine)
+      CREATE (u)<-[:OWNER]-(engine)
+      CREATE (engine)-[:CONNECTS_TO]->(db)
+      SET engine.createdAt = timestamp()
+      SET engine += engineProps
+      WITH engine, u, db
+      CALL apoc.create.addLabels([engine], [u.primaryOrganization]) YIELD node as dbConnectionNode
+      RETURN engine, [] AS phases, toString(engine.createdAt) AS createdAt, db AS dbConnection
+    `;
+    // Log that the API call has been initiated
+   logger.info(`Transaction ID: ${transactionId} - API: ${apiCallName} - User with email ${context.email} is attempting to create a new Engine`);
+
+   const result = await runQuery({
+      query,
+      args: {
+        dbID,
+        engineProps,
+        email: context.email,
+        maxNumberOfEngines: maxNumberOfEngines,
+      },
+      driver: getDriver(),
+      database: process.env.NEO4J_DATABASE,
+    });
+    if (result.code && result.code.includes("ConstraintValidationFailed")) {
+      return new Error("An engine with that id already exists");
+    }
+    if (result && result.constructor && result.constructor.name === "Neo4jError") {
+      throw new Error(result.message);  // Throw the error to be caught in the catch block
+    }
+    const createdEngine = getEngineFromRecord(result.records[0]);
+    // Log that the API call has been initiated
+    logger.info(`Transaction ID: ${transactionId} - API: ${apiCallName} - User with email ${context.email} created a new Engine having ID - "${createdEngine.id}"`);
+    return createdEngine;
+  } catch(error) {
+    logger.error(`Transaction ID: ${transactionId} -  API: ${apiCallName} - Failed to create an Engine for user ${context.email}: ${error.message}`);
+    throw error;  // Rethrow the error after logging
+  }
 };
 
 export const canUserAddEngine = async (context) => {
@@ -123,7 +139,10 @@ export const canUserAddEngine = async (context) => {
 };
 
 export const editEngine = async (id, dbConnectionID, input, context) => {
-  const query = `
+  const transactionId = uuidv4();  
+  const apiCallName = "editEngine";
+  try {
+    const query = `
     MATCH (engine:Engine {id: $id})
     MATCH (u: User {email: $email})
     MATCH (db:DBConnection {id: $dbConnectionID})
@@ -138,6 +157,10 @@ export const editEngine = async (id, dbConnectionID, input, context) => {
     SET engine += $input
     RETURN engine, collect(p) AS phases, toString(engine.createdAt) AS createdAt, db AS dbConnection
   `;
+
+  // Log that the API call has been initiated
+  logger.info(`Transaction ID: ${transactionId} - API: ${apiCallName} - User with email ${context.email} is attempting to edit an Engine`);
+
   const result = await runQuery({
     query,
     args: {
@@ -149,11 +172,22 @@ export const editEngine = async (id, dbConnectionID, input, context) => {
     driver: getDriver(),
     database: process.env.NEO4J_DATABASE,
   });
-  return getEngineFromRecord(result.records[0]);
+  const editedEngine = getEngineFromRecord(result.records[0]);
+    // Log that the API call has been initiated
+  logger.info(`Transaction ID: ${transactionId} - API: ${apiCallName} - User with email ${context.email} edited an Engine having ID - "${editedEngine.id}"`);
+  
+  return editedEngine;
+  } catch(error) {
+    logger.error(`Transaction ID: ${transactionId} -  API: ${apiCallName} - Failed to edit an Engine for user ${context.email}: ${error.message}`);
+    throw error;  // Rethrow the error after logging
+  }
 };
 
 export const deleteEngine = async (id, context) => {
-  const query = `
+  const transactionId = uuidv4();  
+  const apiCallName = "deleteEngine";
+  try {
+    const query = `
     MATCH (engine:Engine {id: $id})
     MATCH (u: User{email: $email} )
     WHERE u.primaryOrganization IS NOT NULL AND u.primaryOrganization IN labels(engine) 
@@ -163,6 +197,8 @@ export const deleteEngine = async (id, context) => {
     OPTIONAL MATCH (engine)-[:HAS_START_PHASE|NEXT_PHASE*]->(phase:Phase)
     DETACH DELETE engine, phase
   `;
+  // Log that the API call has been initiated
+  logger.info(`Transaction ID: ${transactionId} - API: ${apiCallName} - User with email ${context.email} is attempting to delete an Engine with ID - "${id}"`);
   const result = await runQuery({
     query,
     driver: getDriver(),
@@ -170,7 +206,17 @@ export const deleteEngine = async (id, context) => {
     database: process.env.NEO4J_DATABASE,
   });
   const wereNodesDeleted = result.summary.counters._stats.nodesDeleted > 0;
-  if (wereNodesDeleted) return { id };
+  if (wereNodesDeleted) {
+    logger.info(`Transaction ID: ${transactionId} - API: ${apiCallName} - A user with ${context.email} deleted the Engine with ID "${id}"`);
+    return { id };
+  } else {
+    logger.info(`Transaction ID: ${transactionId} - API: ${apiCallName} - Failed to remove Engine with ID "${id}" for user ${context.email}`);
+  }
+  }  catch(error) {
+    // Log if any error occurs during the process
+    logger.error(`Transaction ID: ${transactionId} -  API: ${apiCallName} - Failed to remove Engine with ID "${id}" for user ${context.email}: ${error.message}`);
+    throw error;  // Rethrow the error after logging
+  }
 };
 
 export const getCreatedAt = async (id) => {

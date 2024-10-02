@@ -7,6 +7,7 @@ const GET_PHASES = gql`
       name
       dataModel
       isPrivate
+      isParallelRuntimeEnabled
       description
       databaseName
       returnLabel

@@ -6,6 +6,7 @@ export default `
     dataModel: ID
     createdAt: String!
     isPrivate: Boolean!
+    isParallelRuntimeEnabled: Boolean
     description: String
     returnLabel: String
     returnProperties: [String]
@@ -33,6 +34,7 @@ export default `
     name: String
     dataModel: ID
     isPrivate: Boolean
+    isParallelRuntimeEnabled: Boolean
     description: String
     databaseName: String
     returnLabel: String

@@ -9,6 +9,8 @@ var LRU = require("lru-cache");
 import { performance } from "perf_hooks";
 import { findEngineByID, findPhasesByID } from "../models/engine";
 import { Console } from "console";
+import { logger } from "../index";
+import { v4 as uuidv4 } from 'uuid';
 
 export default {
   Query: {
@@ -84,8 +86,15 @@ export default {
   depreciated recommendations endpoint 
 */
 const _runEngine = async (root, args, context, info) => {
+  // Generate a unique transaction ID for this API call
+  const transactionId = uuidv4();  
+  const apiCallName = "_runEngine";
+
   const engine = await getEngine(args, context);
+  // console.log("Engine details - ",engine)
   try {
+    logger.info(`Transaction ID: ${transactionId} - API: ${apiCallName} - Engine - "${engine.id}" execution initiated`);
+    const startTime = Date.now();  // Capture the start time
     const results = await getEngineResults(
       engine,
       args.params,
@@ -94,9 +103,12 @@ const _runEngine = async (root, args, context, info) => {
       args.parallel,
       args.concurrency
     );
+    const elapsedTime = Date.now() - startTime;  
+    logger.info(`Transaction ID: ${transactionId} - API: ${apiCallName} - Results retrieved for Engine - "${engine.id}". Elapsed time: ${elapsedTime} ms`);
     return results;
-  } catch (err) {
-    throw err;
+  } catch (error) {
+    logger.info(`Transaction ID: ${transactionId} - API: ${apiCallName} - Engine execution failed for Engine - "${engine.id}".: ${error.message}`);
+    throw error;
   }
 };
 
