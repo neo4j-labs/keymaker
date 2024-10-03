@@ -28,3 +28,8 @@ ui/node_modules/
 #license
 enterprise-license.lic
 
+#docker
+docker/v1/config/keymaker-certificate/
+docker/v1/config/keymaker-ui-nginx/neo4j.com.crt
+docker/v1/config/keymaker-ui-nginx/neo4j.com.key
+
