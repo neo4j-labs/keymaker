@@ -32,4 +32,5 @@ enterprise-license.lic
 docker/v1/config/keymaker-certificate/
 docker/v1/config/keymaker-ui-nginx/neo4j.com.crt
 docker/v1/config/keymaker-ui-nginx/neo4j.com.key
+docker/v1/build
 
