@@ -16,8 +16,6 @@ export const createAPIKeyForOrg = async (org, duration, { email }) => {
   let query = `
     MATCH (u:User:Admin:Neo4j {email: $email})
     WHERE u.primaryOrganization IS NOT NULL
-    CALL apoc.util.validate(NOT(exists(u.primaryOrganization)), 'The calling User is not configured correctly', [0])
-    //CALL apoc.util.validate(NOT(exists(u.primaryOrganization)), 'The calling User is not configured correctly', [0])
     CALL apoc.util.validate(u.primaryOrganization IS NULL, 'The calling User is not configured correctly', [0]) 
     CREATE (key:APIKey {id: apoc.create.uuid(), key: $key})
     WITH u,key

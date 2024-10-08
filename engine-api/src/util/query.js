@@ -102,15 +102,23 @@ const cypherBoostPhase = (i, phase) => {
 };
 
 const cypherExcludePhase = (i, phase) => {
-  const invert = phase.inverted ? "NOT" : "";
+  const invert = phase.inverted ? true : false;
   return `
     //--exclude phase--
-    UNWIND results as result
-    WITH result.item AS this, result.score AS _score, result.details AS _details, result
-    WHERE ${invert} EXISTS {
-    WITH this, _score, _details
-    ${phase.cypherQuery}
+    UNWIND results AS result
+    WITH result.item AS this, result.score AS _score, result.details AS _details, result, ${invert} AS invert
+
+    CALL {
+      WITH this, _score, _details
+      ${phase.cypherQuery}
+      UNION ALL
+      WITH this
+      RETURN this AS item
+      // The subquery should return 'item' if the condition matches
     }
+    WITH result, item, invert
+    WITH result, item, count(item) AS cnt, invert
+    WHERE (invert = true AND cnt < 2) OR (invert = false AND cnt >=2)
     WITH collect(result) AS results
   `;
 };
