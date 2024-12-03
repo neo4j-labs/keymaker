@@ -1,0 +1,45 @@
+{
+  "name": "keymaker-engine-api",
+  "version": "6.1.0",
+  "description": "Engine API for Keymaker",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "jest",
+    "start": "./node_modules/.bin/nodemon --exec babel-node src/index.js",
+    "build": "babel src -d dist; cp .env dist",
+    "serve": "node build/index.js"
+  },
+  "author": "Suresh Masilamani, Henry Ball, Snehal Maid",
+  "dependencies": {
+    "@babel/polyfill": "^7.0.0",
+    "@graphql-tools/load-files": "^6.5.3",
+    "@graphql-tools/merge": "^8.2.2",
+    "@neo4j/graphql": "3.4.0",
+    "apollo-server-express": "^3.12.0",
+    "crypto-js": "^4.1.1",
+    "dotenv": "^10.0.0",
+    "express": "^4.18.2",
+    "graphql": "^16.8.0",
+    "graphql-tag": "^2.12.6",
+    "graphql-tools": "^8.2.0",
+    "graphql-type-json": "^0.3.2",
+    "lru-cache": "^6.0.0",
+    "neo4j-driver": "^4.1.2",
+    "tweetnacl": "^1.0.3",
+    "tweetnacl-util": "^0.15.1",
+    "uuid": "^10.0.0",
+    "winston": "^3.14.2",
+    "winston-daily-rotate-file": "^5.0.0"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.17.0",
+    "@babel/core": "^7.17.0",
+    "@babel/node": "^7.16.8",
+    "@babel/plugin-proposal-object-rest-spread": "^7.16.7",
+    "@babel/plugin-transform-runtime": "^7.17.0",
+    "@babel/preset-env": "^7.16.11",
+    "@babel/runtime": "^7.17.0",
+    "jest": "^29.4.1",
+    "nodemon": "^2.0.15"
+  }
+}

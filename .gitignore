@@ -8,14 +8,17 @@ admin-api/src/cypher/*
 admin-api/src/util/license/licenseGenerator.js
 admin-api/src/util/license/licenseEncryptionKeyGenerator.js
 admin-api/.env
+admin-api/dist
 admin-api/node_modules/
 
 #engine-api
 engine-api/.env
+engine-api/dist
 engine-api/node_modules/
 
 #ui
 ui/.env
+ui/build
 ui/node_modules/
 
 #testing folders
@@ -33,4 +36,17 @@ docker/v1/config/keymaker-certificate/
 docker/v1/config/keymaker-ui-nginx/neo4j.com.crt
 docker/v1/config/keymaker-ui-nginx/neo4j.com.key
 docker/v1/build
+
+
+#nondocker
+nondocker/v1/keymaker/admin-api/.env
+nondocker/v1/keymaker/admin-api/build
+nondocker/v1/keymaker/admin-api/node_modules
+
+nondocker/v1/keymaker/engine-api/.env
+nondocker/v1/keymaker/engine-api/build
+nondocker/v1/keymaker/engine-api/node_modules
+
+nondocker/v1/keymaker/ui/.env
+nondocker/v1/keymaker/ui/build
 
