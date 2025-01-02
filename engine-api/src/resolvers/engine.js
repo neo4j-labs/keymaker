@@ -5,7 +5,7 @@ import {
   cancelBatchEngine,
   isBatchEngineRunning,
 } from "../execution/engine";
-var LRU = require("lru-cache");
+var { LRUCache } = require('lru-cache');
 import { performance } from "perf_hooks";
 import { findEngineByID, findPhasesByID } from "../models/engine";
 import { Console } from "console";
@@ -190,12 +190,13 @@ const cacheOptions = {
   max: MAX_CACHED_ENGINES,
   maxAge: MAX_ENGINE_AGE,
 };
-const engineCache = new LRU(cacheOptions);
-const dependencyCache = new LRU(); // cache to hold all engine dependencies (i.e. phases & dbConnections)
+
+const engineCache = new LRUCache(cacheOptions);
+var dependencyCache = new LRUCache(cacheOptions); // cache to hold all engine dependencies (i.e. phases & dbConnections)
 
 /* Periodically prune the cache of old engines */
 setInterval(() => {
-  engineCache.prune();
+  engineCache.purgeStale();
 }, ENGINE_CACHE_PRUNE_INTERVAL);
 
 /* Periodically prune the cache of old engines */

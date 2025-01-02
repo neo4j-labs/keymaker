@@ -1,7 +1,8 @@
-var LRU = require("lru-cache");
 import neo4j from "neo4j-driver";
 import packageInfo from "../../package.json";
 import { decrypt } from "./encryption/crypto";
+
+const { LRUCache } = require('lru-cache');
 
 /* Global variables used by the LRU cache & neo4j driver */
 const MAX_CACHED_DRIVERS = parseInt(process.env.MAX_CACHED_DRIVERS)
@@ -29,18 +30,18 @@ const driverCacheOptions = {
   },
   maxAge: MAX_DRIVER_AGE,
 };
-const driverCache = new LRU(driverCacheOptions);
+const driverCache = new LRUCache(driverCacheOptions);
 
 const dbConnectionCacheOptions = {
   max: MAX_CACHED_DRIVERS,
   maxAge: MAX_DRIVER_AGE,
 };
-const dbConnectionCache = new LRU(dbConnectionCacheOptions);
+const dbConnectionCache = new LRUCache(dbConnectionCacheOptions);
 
 /* Periodically prune the driverCache of old/unused drivers */
 setInterval(() => {
-  driverCache.prune();
-  dbConnectionCache.prune();
+  driverCache.purgeStale();
+  dbConnectionCache.purgeStale();
 }, DRIVER_CACHE_PRUNE_INTERVAL);
 
 /* Driver initialization & cache management */
