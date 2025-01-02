@@ -26,6 +26,7 @@ export default `
     users: [UserRole]
     isPrivate: Boolean
     databases: [String]
+    graphSchemaForGenai: String
   }
 
   type SampleQuestion {
