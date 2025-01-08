@@ -201,8 +201,8 @@ setInterval(() => {
 
 /* Periodically prune the cache of old engines */
 setInterval(() => {
-  engineCache.reset();
-  dependencyCache.reset();
+  engineCache.clear();
+  dependencyCache.clear();
 }, ENGINE_CACHE_RESET_INTERVAL);
 
 /*

@@ -33,7 +33,7 @@ setInterval(() => {
 
 /* Periodically reset the cache in the event a key was deleted or the expriation date was reduced */
 setInterval(() => {
-  cache.reset();
+  cache.clear();
 }, APIKEY_CACHE_RESET_INTERVAL);
 
 /* API key validation & cache management */
