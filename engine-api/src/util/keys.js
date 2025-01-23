@@ -1,4 +1,4 @@
-var LRU = require("lru-cache");
+const { LRUCache } = require('lru-cache');
 import { decrypt, encrypt } from "./encryption/crypto";
 import { runQuery, validateQueryResult, getDriver } from "./db";
 import { logger } from "../index";
@@ -24,16 +24,16 @@ const APIKEY_CACHE_RESET_INTERVAL = parseInt(
 const cacheOptions = {
   max: MAX_CACHED_APIKEYS,
 };
-const cache = new LRU(cacheOptions);
+const cache = new LRUCache(cacheOptions);
 
 /* Periodically prune the cache of expired keys */
 setInterval(() => {
-  cache.prune();
+  cache.purgeStale();
 }, APIKEY_CACHE_PRUNE_INTERVAL);
 
 /* Periodically reset the cache in the event a key was deleted or the expriation date was reduced */
 setInterval(() => {
-  cache.reset();
+  cache.clear();
 }, APIKEY_CACHE_RESET_INTERVAL);
 
 /* API key validation & cache management */

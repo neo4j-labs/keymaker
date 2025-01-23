@@ -1,5 +1,5 @@
 import styled from "styled-components";
-import TextAreaAutosize from "react-autosize-textarea";
+import TextareaAutosize from 'react-textarea-autosize';
 
 export const NoEdit = styled.div`
   // pointer-events: none;
@@ -40,7 +40,7 @@ export const PhaseDescription = styled.div`
   margin-bottom: 6px;
 `;
 
-export const CypherQueryEditor = styled(TextAreaAutosize)`
+export const CypherQueryEditor = styled(TextareaAutosize)`
   border: 1px solid #008ac3;
   color: rgba(0, 0, 0, 0.7);
   padding: 10px;

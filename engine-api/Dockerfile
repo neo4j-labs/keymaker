@@ -1,4 +1,4 @@
-FROM node:14
+FROM node:22.12.0
 
 ARG MAX_OLD_SPACE_SIZE=1024
 ENV NODE_OPTIONS=--max-old-space-size=${MAX_OLD_SPACE_SIZE}
