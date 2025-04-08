@@ -1,0 +1,76 @@
+version: "3"
+
+services:
+  keymaker-admin-api:
+    image: keymaker-admin-api:${KEYMAKER_VERSION}
+    ports:
+      - "36402:4002"
+    volumes:
+      - ./config/keymaker-license:/app/license
+      - ./config/keymaker-certificate:/app/ssh_keys
+      - ./config/logs:/app/logs
+    environment:
+      - LICENSE_FILE=/app/license/license.lic
+      - NEO4J_URI=neo4j://localhost:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=neo4j
+      - NEO4J_DATABASE=neo4j
+      - GRAPHQL_LISTEN_PORT=4002
+      - ENCRYPTION_KEY=keymakerEncryptionKey
+      - ENGINE_API_APIKEY=LZmIbId7He4dh0hH7ZUVKz5A
+      - AUTH_METHOD=local
+      - HOST_NAME=localhost
+      - HOST_PROTOCOL=http
+      - LOGS_DIR=/app/logs
+      - LOG_LEVEL=info
+      - LOG_MAX_SIZE=20m
+      - LOG_RETENTION_PERIOD=14d
+      - MAX_CACHED_DRIVERS=100
+      - MAX_DRIVER_AGE=3600000
+      - NEO4J_TRANSACTION_TIMEOUT=300000
+      - DRIVER_CACHE_PRUNE_INTERVAL=600000
+  keymaker-engine-api:
+    image: keymaker-engine-api:${KEYMAKER_VERSION}
+    ports:
+      - "36401:4001"
+    volumes:
+      - ./config/keymaker-license:/app/license
+      - ./config/keymaker-certificate:/app/ssh_keys
+      - ./config/whitelist:/app/config
+      - ./config/logs:/app/logs
+    environment:
+      - LICENSE_FILE=/app/license/license.lic
+      - WHITELISTED_ORIGINS_FILE=/app/config/whitelisted-origins.txt
+      - NEO4J_URI=neo4j://localhost:7687
+      - NEO4J_USERNAME=neo4j
+      - NEO4J_PASSWORD=neo4j
+      - NEO4J_DATABASE=neo4j
+      - GRAPHQL_LISTEN_PORT=4001
+      - ENCRYPTION_KEY=keymakerEncryptionKey
+      - HOST_NAME=localhost
+      - HOST_PROTOCOL=http
+      - MAX_CACHED_DRIVERS=100
+      - MAX_DRIVER_AGE=3600000
+      - NEO4J_TRANSACTION_TIMEOUT=300000
+      - DRIVER_CACHE_PRUNE_INTERVAL=600000
+      - MAX_CACHED_APIKEYS=100
+      - APIKEY_CACHE_PRUNE_INTERVAL=600000
+      - LOGS_DIR=/app/logs
+      - LOG_LEVEL=info
+      - LOG_MAX_SIZE=20m
+      - LOG_RETENTION_PERIOD=14d
+      - MAX_CACHED_ENGINES=100
+      - MAX_ENGINE_AGE=3600000
+      - ENGINE_CACHE_PRUNE_INTERVAL=600000
+      - ENGINE_CACHE_RESET_INTERVAL=86400000
+  keymaker-ui:
+    image: keymaker-ui:${KEYMAKER_VERSION}
+    ports:
+      - "36081:3080"
+      - "36444:3443"
+    volumes:
+      - ./config/keymaker-ui:/usr/share/nginx/html/config
+      - ./config/keymaker-ui-nginx:/usr/share/nginx/conf
+    depends_on:
+      - "keymaker-engine-api"
+      - "keymaker-admin-api"
