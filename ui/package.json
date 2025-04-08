@@ -1,6 +1,6 @@
 {
   "name": "keymaker-ui",
-  "version": "7.0.0",
+  "version": "7.1.0",
   "description": "UI app for Keymaker",
   "scripts": {
     "start": "react-scripts start",
