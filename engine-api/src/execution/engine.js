@@ -1,6 +1,7 @@
 import {
   buildPipelineQuery,
-  buildCollectionQuery
+  buildCollectionQuery,
+  buildBatchPipelineQuery
 } from "../util/query.js";
 import { performance } from "perf_hooks";
 import { initializeDriver, runQuery } from "../util/db.js";
@@ -71,6 +72,7 @@ export const getEngineResults = async (
       args: {
         // params: allParams,
         ...allParams,
+        params: allParams,
         phases: pipelinePhases,
       },
       database: databaseName,
@@ -135,7 +137,7 @@ export const getEnginePerformanceResults = async (
         isRead: true,
         query: collectionQuery,
         args: {
-          // params,
+          params,
           ...params,
           phases: collectionPhases,
         },
@@ -158,7 +160,7 @@ export const getEnginePerformanceResults = async (
       isRead,
       query: pipelineQuery,
       args: {
-        // params: allParams,
+        params: allParams,
         ...allParams,
         phases: pipelinePhases,
       },
@@ -216,8 +218,11 @@ export const runBatchEngine = async (
     const pipelinePhases = activePhases.filter(
       (phase) => phase.phaseType !== "CypherCollectionPhase"
     );
-    const pipelineQuery = buildPipelineQuery(pipelinePhases, 0, 0);
+    const pipelineQuery = buildBatchPipelineQuery(pipelinePhases, 0, 0);
     const batchQuery = `
+      WITH [] AS results
+      CALL dbms.components() YIELD edition AS license 
+      CALL apoc.util.validate(license = 'community', 'Cannot run Keymaker on a Neo4j community license', [license])
       CALL apoc.util.sleep(${delaySeconds * 1000})
       CALL apoc.periodic.repeat("${name}", "${pipelineQuery}", ${timeIntervalSeconds}, {params: {phases: $phases, params: $params}}) YIELD name
       RETURN name
@@ -227,6 +232,7 @@ export const runBatchEngine = async (
       driver,
       query: batchQuery,
       args: {
+        ...params,
         params,
         phases: pipelinePhases,
       },

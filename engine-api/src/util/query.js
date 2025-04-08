@@ -36,6 +36,16 @@ export const buildPipelineQuery = (phases, first, skip, isParallelRuntimeEnabled
   return query;
 };
 
+// batch pipeline query builder
+export const buildBatchPipelineQuery = (phases, first, skip) => {
+  let query = "WITH [] AS results";
+  for (var i = 0; i < phases.length; i++) {
+    query += queryBuilders[phases[i].phaseType](i, phases[i]);
+  }
+  query += QUERY_END(first, skip);
+  return query;
+};
+
 /* -- Collection Query Builders -- */
 
 export const buildCollectionQuery = (phases, isParallelRuntimeEnabled) => {
