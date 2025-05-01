@@ -95,6 +95,37 @@ Creating admin@neo4j.com
 
 Upon success, this will create a node in the database with the :User.
 
+For **Windows OS**, you can create the User account using Admin API using the following steps
+
+1. Access the Admin API service here http://localhost:4000/graphql
+2. Select Query your Server
+3. Add the following mutation to the Operation Tab
+```
+mutation Mutation($input: CustomUser!) {
+  createUserSignUp(input: $input) {
+    email
+    isAdmin
+    isCurrentUser
+    name
+    picture
+  }
+}
+```
+4. Pass variables to the above API request. For example
+```
+{
+  "input": {
+    "email": "admin@neo4j.com",
+    "password": "password",
+    "name": "Keymaker Admin",
+    "picture": ""
+  }
+}
+```
+5. Run Mutation. 
+
+Upon success, this will create a node in the database with the :User.
+
 ### Login
 
 Assuming you installed this locally, use your web browser to navigate to http://localhost:3000/login. You will be presented with a login screen.
