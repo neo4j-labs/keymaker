@@ -1,5 +1,7 @@
 # Keymaker
 
+> This is an experimental Neo4j Labs project and not part of Neo4j's supported product lineup. See the [Neo4j Labs disclaimer](./LABS_DISCLAIMER.txt).
+
 ## Overview
 
 Keymaker is an analytics framework built on top of Neo4j. It allows you to write Cypher based pipleines on top of your Neo4j database without having to write any infrastructure code. For each Cypher pipleine you write, the framework exposes a graphql API endpoint which allows you to easily run the pipeline and/or consume the results from a frontend application. It also has built in collabration capabilities, performance testing features and encourages you to write more readable Cypher.
